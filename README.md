@@ -9,7 +9,7 @@
   
 <b>강의 분야: Next.js</b></br>
 강사 : 최지민(현 토스증권 Frontend Developer, Chapter Lead)</br>
-[강의 페이지](https://fastcampus.co.kr/dev_online_nextjs)</b> 
+[[강의 페이지](https://fastcampus.co.kr/dev_online_nextjs)] | [[깃허브](https://github.com/techoi/fastcampus-nextjs)]</b> 
 
 </div>
 
