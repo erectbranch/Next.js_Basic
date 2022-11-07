@@ -10,6 +10,8 @@
 
   > VSCode Extension으로 React Snippets를 추가적으로 설치하였다.
 
+  > 프로젝트에 .prettierrc, .prettierignore 파일을 만들어 prettier가 제대로 동작하도록 설정했다.(기본적으로 commerce 프로젝트 내 파일과 동일하게 진행) 또한 package.json에 "prettier-fix": "prettier --write ." 명령을 추가했다. yarn add -D prettier으로 설치하여 설정을 마무리한다.(yarn prettier-fix 명령 시 반영이 된다.)
+
 ---
 
 ## **01 Next.js 소개**
@@ -151,7 +153,7 @@ packages.json 파일을 보면 learn-starter 프로젝트와 모양이 꽤 다�
 yarn install --ignore-engines
 ```
 
-yarn build을 입력하고 정상적으로 마무리가 되면 yarn start를 입력한다. http://localhost:3000로 마찬가지로 접속했을 때, commerce 프로젝트가 제대로 실행되는 것을 볼 수 있다.
+yarn build을 입력하고 정상적으로 마무리가 되면 yarn start를 입력한다. http://localhost:3000 로 접속하면 commerce 프로젝트가 제대로 실행되는 것을 볼 수 있다.
 
 ![yarn start 입력 터미널](images/yarn_start.png)
 
