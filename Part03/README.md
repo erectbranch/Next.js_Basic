@@ -6,7 +6,7 @@
 
 ---
 
-## **01 프로젝트 시작**
+## **01 프로젝트 시작(Link Component / Client-Side Naivgation)**
 
 이전에는 npx로 프로젝트를 만들었다면, 이번 프로젝트는 yarn으로 만들 것이다.
 
@@ -132,7 +132,7 @@ Link 태그를 누르면 이 속성이 유지가 된다. 모든 데이터를 다
 
 - 현재 제공하는 서비스와 별개의 외부 링크로 연결할 때는 a tag만 쓰면 된다.
 
-- Link Component에 스타일을 줄 때는 child tag로 만든 a tag에 줘야 했지만, Next.js 13부터 \<\Link id="link"\>Home\</\Link\>처럼 Link Component 자체에 스타일을 줄 수 있게 됐다.(아예 역할이 편입되었기 때문에, child tag로 a 태그를 주려는 시도 자체가 오류를 불러 온다.)
+- 과거 Link Component에 스타일을 줄 때는 child tag로 만든 a tag에 줘야 했지만, Next.js 13부터 \<\Link id="link"\>Home\</\Link\>처럼 Link Component 자체에 스타일을 줄 수 있게 됐다.(아예 역할이 편입되었기 때문에, child tag로 a 태그를 주려는 시도 자체가 오류를 불러 온다.)
 
 > [Creating Linkable Tabs in Next.js](https://dev.to/amrtcrypto/creating-linkable-tabs-in-nextjs-the-easy-way-17pg)
 
@@ -142,7 +142,7 @@ Link 태그를 누르면 이 속성이 유지가 된다. 모든 데이터를 다
 npx @next/codemod new-link .
 ```
 
-Link 태그가 있는 '첫 번째 글' 부분에 '글로벌'로 스타일을 부여한다.
+className으로 속성을 추가하고, Link 태그가 있는 '첫 번째 글' 부분에 '글로벌'로 스타일을 부여한다.
 
 ```JavaScript
 // index.js
@@ -180,5 +180,460 @@ Link 태그가 있는 '첫 번째 글' 부분에 '글로벌'로 스타일을 부
 그러면 다음과 같이 스타일이 적용된다.
 
 ![Link 태그 스타일](images/link_tag_style.png)
+
+---
+
+## **02 Layouts / Styling**
+
+Link 태그와 a 태그를 비교하기 위해 작성한 부분(a 태그)를 제거하고, Welcome to Next.js! 단락도 제거했다.
+
+### public
+
+[public]은 정적 리소스를 Next.js로 서빙하기 위한 디렉터리다.
+
+- robots.txt: 크롤러의 권한을 정의한 파일(예시: https://www.reddit.com/robots.txt)
+
+- images
+
+### Image Component
+
+Link 태그와 a 태그의 관계처럼, 이미지도 Image 태그(Next.js 제공)와 img 태그가 있다.
+
+```JavaScript
+// img 태그
+<img src="/images/profile.png" alt="Holography">
+```
+
+```JavaScript
+// Image 태그
+<Image src="/images/profile.png" width={144} height={144} alt="Holography">
+```
+
+차이를 확인하기 위해 현재 프로젝트의 [public] 디렉터리에 [images] 폴더를 만들고 내부에 profile.png 파일을 넣었다.
+
+![profile.png 파일](images/profile.png)
+
+우선 img 태그를 이용하여 상단에 표시해 보았다.
+
+```JavaScript
+// index.js
+// ...
+      <main>
+        <img src="/images/profile.png" alt="Holography" />
+
+        <h1 className="title">
+          Read this Post{' '}
+          //...
+```
+
+다음과 같이 표시된다. 개발자 도구 이미지 탭을 보면 profile.png를 가져온 것을 알 수 있다.
+
+![img 태그 프로필 사진 표시](images/img_tag_1.png)
+
+이번에는 Image 태그로 표시할 것이다. (img 태그로 표시한 것은 주석 처리했다.) 이를 위해 import Image from 'next/image' 과정을 거쳤다.
+
+```JavaScript
+//...
+import Image from 'next/image'
+
+//...
+      <main>
+        {/*<img src="/images/profile.png" alt="Holography" /> 주석 처리*/}
+        <Image
+          src="/images/profile.png"
+          alt="holography"
+          width={140}
+          height={140}
+        />
+```
+
+이렇게 Image 태그로 생성된 이미지는 img 태그로 불러온 이미지와 다른 형태로 가져오는 것을 알 수 있다.
+
+![Image 태그 프로필 사진 표시](images/Image_tag_1.png)
+
+먼저 요청 url이 다음과 같다.
+
+```
+http://localhost:3000/_next/image?url=%2Fimages%2Fprofile.png&w=256&q=75
+```
+
+![Image 태그 프로필 사진 표시 2](images/Image_tag_2.png)
+
+또한 우측 하단을 보면 불러온 이미지가 훨씬 가벼운 webp 형식인 것을 알 수 있다.(사용자의 브라우저에 맞춰서 최적화된 포맷으로 제공한다.)
+
+또한 Prefetching도 적용된다. 예를 들어 상단에 있는 Image 태그를 하단으로 옮기면, 이미지가 viewport에 들어올 때 로드된다.(lazy load한다.)
+
+다시 정리하면 다음과 같은 기능을 제공한다.
+
+- Resizing(responsive 사이즈)
+
+- Lazy load(viewport에 들어오면 로드)
+
+- 그외 optimization(webp 형태)
+
+또한 CLS(Cumulative Layout Shift, 누적 레이아웃 이동)를 최대한 방지한다. CLS는 컴포넌트가 없다가 생기거나, 컴포넌트의 사이즈가 바뀌면서, 다른 컴포넌트 요소들이 다시 렌더되는(layout shifting 되는) 현상을 말한다.
+
+### Metadata
+
+웹 문서로서 제공하는 메타 정보들을 의미한다.
+
+개발자 도구를 보면 쉽게 확인할 수 있다. '\<title> 제목 \</title>' 내부에 들어 있다. 직접 사이트를 확인해 보자.(https://www.google.com/search?q=react)
+
+![metadata 구글 검색](images/metadata_1.png)
+
+![사이트 내 메타 정보](images/metadata_2.png)
+
+잘 보면 메타 정보 그대로 구글에 노출되고 있다. 구글 검색 엔진이 사이트를 크롤링하면서 이런 정보를 수집해서 표시하는 것이다.
+
+지금 만드는 프로젝트도 잘 보면 이미 이 부분을 포함하고 있다.
+
+```JavaScript
+// index.js
+
+export default function Home() {
+  return (
+    <div className="container">
+      <Head>
+        <title>Create Next App</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+```
+
+아래와 같은 다양한 컴포넌트를 포함할 수 있다.
+
+Head Component
+
+- title / images / description 등 og(open graph) tag: 예를 들어 카카오톡에 링크를 공유하면 사이트의 대표 이미지와 타이틀, 묘사 등이 표시된다.
+
+- icon
+
+- third party script(ex. google-analytics..)
+
+Script Component
+
+- strategy
+
+- onLoad
+
+### Layout
+
+레이아웃 예시로 공통 컴포넌트로 ./layout.module.css라는 CSS 모듈을 만들 것이다.
+
+.container 클래스 스타일을 만들고, Layout에서 해당 클래스네임을 사용하면 css가 적용된다.
+
+프로젝트에 [components] 디렉터리를 만들고 내부에 Layout.js 파일, layout.module.css 파일을 생성했다. Layout.js 파일은 {children}을 받아 div로 감싸서 반환한다. 동시에 css 파일의 .container에서 코드를 꺼내서 주입해 준다.
+
+layout.module.css 파일 코드는 다음과 같다.
+
+```css
+.container {
+  max-width: 36rem;
+  padding: 0 1rem;
+  margin: 3rem auto 6rem;
+}
+```
+
+Layout.js 파일 코드는 다음과 같다.
+
+```JavaScript
+import styles from './layout.module.css'
+
+export default function Layout({ children }) {
+  return <div className={styles.container}>{children}</div>
+}
+```
+
+이제 first-post 페이지에 레이아웃을 적용해 보자. 우선 겸사겸사 메타데이터를 추가하였다.
+
+```JavaScript
+// first-post.js
+
+import Head from 'next/head'
+
+export default function FirstPost() {
+  return (
+    <>
+      <Head>
+        <title>첫 번째 글</title>
+      </Head>
+      <h1>첫 번째 글</h1>
+    </>
+  )
+}
+```
+
+![첫 번째 글 메타데이터 추가](images/first-post_metadata.png)
+
+그 다음 레이아웃을 추가했다.
+
+```JavaScript
+// first-post.js
+
+import Head from 'next/head'
+import Layout from '../../components/Layout'
+
+export default function FirstPost() {
+  return (
+    <Layout>
+      <Head>
+        <title>첫 번째 글</title>
+      </Head>
+      <h1>첫 번째 글</h1>
+    </Layout>
+  )
+}
+```
+
+![첫 번째 글 레이아웃 추가](images/first-post_layout.png)
+
+### Global CSS
+
+예제로 pages/\_app.js 파일을 만들었다. styles/global.css를 만들어서 전역으로 적용할 스타일을 정의하고, \_app.js 에서 import '../styles/global.css'를 할 것이다.([style] 디렉터리 생성 후 global.css 파일을 생성했다. 또한 [pages] 디렉터리 안에 \_app.js 파일을 생성했다.)
+
+> [Nextjs.org: Global styles](https://nextjs.org/learn/basics/assets-metadata-css/global-styles)
+
+공식 홈페이지에 있는 global CSS 파일 코드 안내에 따라 파일을 생성할 것이다. 아래는
+
+```css
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica
+      Neue, sans-serif;
+  line-height: 1.6;
+  font-size: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+```
+
+global.css 파일 생성이 끝났다. 이번에는 [pages] 디렉터리 안에 생성한 \_app.js 파일 코드이다. (Part2 Layout 문단 참조)
+
+```JavaScript
+// _app.js
+import '../styles/global.css'
+
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />
+}
+```
+
+아래는 적용 전과 적용 후 사진이다.
+
+- 적용 전
+
+![global css 적용 전](images/global_css_before.png)
+
+- 적용 후
+
+![global css 적용 후](images/global_css_after.png)
+
+### 스타일 추가
+
+[Next.js: Assets, Metadata, and CSS](https://nextjs.org/learn/basics/assets-metadata-css/polishing-layout)
+
+위 공식 사이트에서 제시한 스타일로 만들어 볼 것이다. 사이트에서 소개한 차례대로 진행했다.
+
+아래는 layout.module.css 파일이다.
+
+```css
+.container {
+  max-width: 36rem;
+  padding: 0 1rem;
+  margin: 3rem auto 6rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.backToHome {
+  margin: 3rem 0 0;
+}
+```
+
+다음은 [styles] 디렉터리 내 utils.module.css 파일을 만든 뒤 넣은 코드다.
+
+```css
+.heading2Xl {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.05rem;
+  margin: 1rem 0;
+}
+
+.headingXl {
+  font-size: 2rem;
+  line-height: 1.3;
+  font-weight: 800;
+  letter-spacing: -0.05rem;
+  margin: 1rem 0;
+}
+
+.headingLg {
+  font-size: 1.5rem;
+  line-height: 1.4;
+  margin: 1rem 0;
+}
+
+.headingMd {
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.borderCircle {
+  border-radius: 9999px;
+}
+
+.colorInherit {
+  color: inherit;
+}
+
+.padding1px {
+  padding-top: 1px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.listItem {
+  margin: 0 0 1.25rem;
+}
+
+.lightText {
+  color: #666;
+}
+```
+
+다음으로 [components] 내부에 있는 Layout.js 파일 코드를 바꾸어 주었다.(홈페이지 예시는 layout.js로 소문자로 만들어 두었다. profile.jpg는 확장자를 png로 바꿨다.)
+
+```JavaScript
+import Head from 'next/head'
+import Image from 'next/image'
+import styles from './layout.module.css'
+import utilStyles from '../styles/utils.module.css'
+import Link from 'next/link'
+
+const name = 'Your Name'
+export const siteTitle = 'Next.js Sample Website'
+
+export default function Layout({ children, home }) {
+  return (
+    <div className={styles.container}>
+      <Head>
+        <link rel="icon" href="/favicon.ico" />
+        <meta
+          name="description"
+          content="Learn how to build a personal website using Next.js"
+        />
+        <meta
+          property="og:image"
+          content={`https://og-image.vercel.app/${encodeURI(
+            siteTitle
+          )}.png?theme=light&md=0&fontSize=75px&images=https%3A%2F%2Fassets.vercel.com%2Fimage%2Fupload%2Ffront%2Fassets%2Fdesign%2Fnextjs-black-logo.svg`}
+        />
+        <meta name="og:title" content={siteTitle} />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Head>
+      <header className={styles.header}>
+        {home ? (
+          <>
+            <Image
+              priority
+              src="/images/profile.png"
+              className={utilStyles.borderCircle}
+              height={144}
+              width={144}
+              alt=""
+            />
+            <h1 className={utilStyles.heading2Xl}>{name}</h1>
+          </>
+        ) : (
+          <>
+            <Link href="/">
+              <Image
+                priority
+                src="/images/profile.png"
+                className={utilStyles.borderCircle}
+                height={108}
+                width={108}
+                alt=""
+              />
+            </Link>
+            <h2 className={utilStyles.headingLg}>
+              <Link href="/" className={utilStyles.colorInherit}>
+                {name}
+              </Link>
+            </h2>
+          </>
+        )}
+      </header>
+      <main>{children}</main>
+      {!home && (
+        <div className={styles.backToHome}>
+          <Link href="/">← Back to home</Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+```
+
+그 다음으로는 [pages] 디렉터리 내 index.js 파일 코드를 바꾸어 주었다.
+
+```JavaScript
+// index.js
+
+import Head from 'next/head';
+import Layout, { siteTitle } from '../components/layout';
+import utilStyles from '../styles/utils.module.css';
+
+export default function Home() {
+  return (
+    <Layout home>
+      <Head>
+        <title>{siteTitle}</title>
+      </Head>
+      <section className={utilStyles.headingMd}>
+        <p>[Your Self Introduction]</p>
+        <p>
+          (This is a sample website - you’ll be building a site like this on{' '}
+          <a href="https://nextjs.org/learn">our Next.js tutorial</a>.)
+        </p>
+      </section>
+    </Layout>
+  );
+}
+```
+
+그럼 다음과 같이 레이아웃이 바뀐 것을 볼 수 있다.
+
+![레이아웃 변경 1](images/layout_change_1.png)
+
+![레이아웃 변경 2](images/layout_change_2.png)
 
 ---
