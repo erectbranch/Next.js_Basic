@@ -88,7 +88,7 @@ npx create-next-app nextjs-blog --use-npm --example "https://github.com/vercel/n
 
 - "start": "next start" - Next.js **프로덕션 서버**를 시작하는 실행
 
-'npm run dev'를 터미널에 입력하면 나오는 주소(http://localhost:포트)로 프로젝트가 실행된 것을 확인할 수 있다.
+'npm run dev'를 터미널에 입력하면 나오는 주소(http://localhost:포트 )로 프로젝트가 실행된 것을 확인할 수 있다.
 
 ![yarn 입력](images/yarn.png)
 
@@ -106,15 +106,15 @@ npx create-next-app nextjs-blog --use-npm --example "https://github.com/vercel/n
 
 ### commerce 프로젝트 살피기
 
-[commerce 프로젝트 깃허브](https://github.com/vercel/commerce/tree/8398a962154a972d3af308ec48e01bebe5b92f7a): git clone 명령어를 이용하여 프로젝트를 복제한다. 7월 13일 기준 버전으로 선택했다.(이후 버전은 pnpm을 packageManager로 사용하므로 강의와 일치하지 않는다.) 클론한 디렉터리 [commerce]로 이동 후 git log로 커밋 로그를 확인한 뒤 특정 버전으로 롤백했다.
+[commerce 프로젝트 깃허브](https://github.com/vercel/commerce/tree/8398a962154a972d3af308ec48e01bebe5b92f7a): git clone 명령어를 이용하여 프로젝트를 복제한다. 7월 13일 기준 버전으로 선택했다.(이후 버전은 pnpm을 packageManager로 사용하므로 강의 버전과 일치하지 않는다.) 클론한 디렉터리 [commerce]로 이동 후 git log로 커밋 로그를 확인한 뒤 특정 버전으로 롤백했다.
 
-```
+```bash
 $ git clone https://github.com/vercel/commerce.git
 
 $ git reset --hard 87134e2990c3ce666ec364d9c8714c0b252e8792
 ```
 
-터미널에서 code commerce를 입력하면 VSCode가 추천 확장 기능을 표시한다.(extension.json 파일이 포함되어 있기 때문이다.) 이들을 설치하고, 터미널에서 yarn을 입력한다.
+터미널에서 code commerce를 입력하면 VSCode가 추천 확장 기능을 표시한다.(extension.json 파일에 해당 정보가 포함되어 있기 때문이다.) 이들을 설치하고, 터미널에서 yarn을 입력한다.
 
 ```json
 {
@@ -203,6 +203,8 @@ yarn dev로 실행 시 다음과 같이 화면이 출력된다.
 
 따라서 예제에서 import를 제외한 제일 상단에 getServerSideProps() 함수를 생성했다. 이 함수는 props라는 것을 return해야 하며, 예제에서는 time으로 지정했다.
 
+> props는 property의 약자로, 주로 부모에게 받아온 데이터를 의미한다. Data Flow는 단방향 형식으로 부모에서 자식에게만 이동한다.(거꾸로 올라갈 수는 없다.)
+
 ```JavaScript
 export async function getServerSideProps() {
   return {
@@ -211,7 +213,7 @@ export async function getServerSideProps() {
 }
 ```
 
-또한 위에서 반환하는 time이 표시될 수 있도록 매개변수와 \<h1\> 태그 내부에 {time} 코드를 추가했다.
+또한 getServerSideProps()에서 반환하는 time이 표시될 수 있도록 매개변수와 \<h1\> 태그 내부에 {time} 을 추가했다.
 
 ```JavaScript
 export default function Home({ time }) {
@@ -260,18 +262,19 @@ import Link from "next/link";
       <main>
         <h1 className="title">{time}</h1>
         <h1>
-          <Link href="/csr"> CSR 페이지로 이동 </Link>    // 강의에서 쓴 \<a\>는 Link와 a 사이에 공백이 존재하면, 공백이 자식 노드로 간주되는 바람에 오류가 발생한다.
+          <Link href="/csr"> CSR 페이지로 이동 </Link>
         </h1>
       </main>
 ```
 
-이제 연결될 페이지를 제작한다. [pages] 디렉터리 안에 csr.js를 추가했다. 사용하지 않을 SSR 함수와 하이퍼링크를 빼고, index.js의 코드를 복사한 뒤 붙여넣은 뒤 export default function CSR()로 수정했다.
+이제 연결될 페이지를 제작한다. [pages] 디렉터리 안에 csr.js를 추가했다. 사용하지 않을 SSR 함수와 하이퍼링크를 빼고, index.js의 코드를 복사하여 붙여넣은 뒤 'export default function CSR()'로 수정했다.
 
 ![index.js](images/csr_index.js.png)
 
 이제 클라이언트에게 시간을 받는 CSR 파트를 만든다. 아래는 csr.js 파일 코드에 추가한 부분이다.
 
 ```JavaScript
+// csr.js
 import { useEffect, useState } from "react";
 //...
 
@@ -309,7 +312,7 @@ export default function CSR() {
 
 예를 들어, 블로그에서 글을 작성하면 수정을 시도하기 전까지는 build 당시 페이지를 보여주면 서버 부하를 줄이고 자원을 아낄 수 있다. 이 장점 때문에 SSG가 SSR보다 권장된다.
 
-SSG의 동작을 살펴보기 위해 [page] 디렉터리에 ssg.js를 새로 만들었다.(베이스는 csr.js을 복사했음) index.js에서 Link를 통해 이동할 수 있다.(팁: index.js에서 링크를 만들 때 option + shift + 아래 방향키로 코드 한 줄을 복사했다.)
+SSG의 동작을 살펴보기 위해 [page] 디렉터리에 ssg.js를 새로 만들었다.(csr.js을 복사하여 재구성함) index.js에서 Link를 통해 이동할 수 있다.(팁: index.js에서 링크를 만들 때 option + shift + 아래 방향키로 코드 한 줄을 복사했다.)
 
 ```JavaScript
 // index.js
@@ -332,6 +335,9 @@ export async function getStaticProps() {
 
 export default function SSG({time}) {
   return (
+    //...
+  )
+}
 ```
 
 yarn build - yarn start로 결과를 확인했다.
@@ -346,7 +352,7 @@ console.log("server"); 문장은 build를 할 때만 출력되었고, 클라이�
 
 ![ssg 서버 콘솔](images/ssg_server_console.png)
 
-이전에 확인한 commerce 프로젝트에서도 SSG을 쓴 흔적을 발견할 수 있다. commerce 프로젝트의 [site] - [pages] - [product] - [slug].tsx 코드를 살펴 보자. yarn dev로 실행했다.(한 차례 build start 과정을 거치고 다시 진행했다.)
+참고로 이전에 확인한 commerce 프로젝트에서도 SSG을 쓴 흔적을 발견할 수 있다. commerce 프로젝트의 [site] - [pages] - [product] - [slug].tsx 코드를 살펴 보자. yarn dev로 실행했다.(한 차례 build start 과정을 거치고 다시 진행했다.)
 
 ```TypeScript
 // [slug].tsx
@@ -387,7 +393,22 @@ ISR 동작을 확인하기 위해 다시 learn-starter 프로젝트를 살피자
 
 ```JavaScript
 // isr.js
+import Head from 'next/head'
 
+export async function getStaticProps() {
+  console.log('server')
+
+  return {
+    props: { time: new Date().toISOString() },
+    revalidate: 1,
+  }
+}
+
+export default function ISR({ time }) {
+  return (
+    //...
+  )
+}
 ```
 
 정적 사이트이므로 yarn build - yarn start로 결과를 확인했다.
@@ -487,7 +508,7 @@ export default function App({ Component, pageProps }) {
 
 ![layout 첫 번째 시도](images/layout_result_1.png)
 
-이렇게 중복되지 않도록 index.js, csr.js,, isr.js, ssg.js 내 공통되는 요소를 삭제하였다.(\<main\> 내부 요소만 남기고 지운 뒤 컴포넌트를 return 해야 하므로 fragment로 감쌌다.)
+이렇게 중복되지 않도록 index.js, csr.js,, isr.js, ssg.js 내 공통되는 요소를 삭제하였다.(\<main\> 태그 내부 요소만 남기고 지운 뒤 컴포넌트를 return 해야 하므로 fragment로 감쌌다.)
 
 ```JavaScript
 // index.js
