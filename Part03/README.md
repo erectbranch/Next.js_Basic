@@ -986,7 +986,7 @@ export default function Home({ allPostsData }) {
 }
 ```
 
-아래는 yarn dev로 구동한 화면이다.
+아래는 yarn dev로 구동한 화면이다.(build - start로 보려면 오류가 발생한다. getStaticProps() 함수는 build를 하면서 화면을 그리지만, localhost는 서버를 띄워 놓아야 생기는 것이기 때문에 동작할 수 없다. SSR 즉, getServerSideProps로 바꿔 준다면 동작한다. 다만 API Routes는 클라이언트에서 서버 사이드로 요청하기 위해서 존재하는 것으로, 이런 식으로 서버에서 서버 사이드로 요청하는 동작 자체가 의미가 없는 행위에 가깝다.)
 
 ![metadata 읽기: SSG + API 구현](images/metadata_ssg_api_1.png)
 
