@@ -4,6 +4,8 @@
 
 위 예제를 바탕으로 블로그를 만들고(메인/상세 페이지 구성), 커스텀, 배포 과정까지 진행할 것이다.
 
+공식 문서에서는 layout.js를 사용하지만, 예제에서는 Layout.js 파일로 생성한 만큼 프로젝트 진행에 유의할 것.(한 차례 오류 발생)
+
 ---
 
 ## **01 프로젝트 시작(Link Component / Client-Side Naivgation)**
@@ -609,7 +611,7 @@ export default function Layout({ children, home }) {
 // index.js
 
 import Head from 'next/head';
-import Layout, { siteTitle } from '../components/layout';
+import Layout, { siteTitle } from '../components/Layout';
 import utilStyles from '../styles/utils.module.css';
 
 export default function Home() {
@@ -635,5 +637,365 @@ export default function Home() {
 ![레이아웃 변경 1](images/layout_change_1.png)
 
 ![레이아웃 변경 2](images/layout_change_2.png)
+
+---
+
+## **03 Pre-rendering / Data Fetching**
+
+SSG(build time) vs SSR(request time)을 블로그 예제를 만들면서 다시 한 번 확인해 보자.
+
+이미 Next.js를 활용하면 페이지별로 Pre-rendering 방식을 선택할 수 있다는 사실을 공부했다. 예를 들어 getStaticProps를 사용하면 SSG, getServerSideProps를 사용하면 SSR이었다.
+
+SSG의 적용 여부를 선택하는 기준은 '사용자가 페이지를 **요청하기 전**에 pre-render할 수 있는가?'로 판단할 수 있다. 예를 들면 Marketing pages, blog posts, e-commerce product listings, help and documentation 등이 있다.
+
+SSG는 2가지 케이스가 있었다.
+
+- 외부 데이터 없이 pre-rendering
+
+- 외부 데이터를 가져와서 pre-rendering
+
+여기서 외부 데이터란 아래와 같은 요소들을 의미했다.
+
+- 다른 파일
+
+- API
+
+- DB 등
+
+다른 파일을 읽어올 것이다. 두 가지 md 파일(posts/pre-rendering.md, posts/ssg-ssr.md)을 읽을 것이며, 아래 Next.js 공식 홈페이지에서 제시하고 있다.
+
+> [Next.js: 예제 md 파일](https://nextjs.org/learn/basics/data-fetching/blog-data)
+
+[pages] 디렉터리 하위에 있는 [posts] 폴더가 아닌, 프로젝트 최상위에 [posts] 폴더를 만들어서 내부에 md 파일을 생성했다.
+
+아래는 posts/pre-rendering.md 파일 코드다.
+
+```md
+---
+title: "Two Forms of Pre-rendering"
+date: "2020-01-01"
+---
+
+Next.js has two forms of pre-rendering: **Static Generation** and **Server-side Rendering**. The difference is in **when** it generates the HTML for a page.
+
+- **Static Generation** is the pre-rendering method that generates the HTML at **build time**. The pre-rendered HTML is then _reused_ on each request.
+- **Server-side Rendering** is the pre-rendering method that generates the HTML on **each request**.
+
+Importantly, Next.js let's you **choose** which pre-rendering form to use for each page. You can create a "hybrid" Next.js app by using Static Generation for most pages and using Server-side Rendering for others.
+```
+
+다음은 posts/ssg-ssr.md 파일 코드다.
+
+```md
+---
+title: "When to Use Static Generation v.s. Server-side Rendering"
+date: "2020-01-02"
+---
+
+We recommend using **Static Generation** (with and without data) whenever possible because your page can be built once and served by CDN, which makes it much faster than having a server render the page on every request.
+
+You can use Static Generation for many types of pages, including:
+
+- Marketing pages
+- Blog posts
+- E-commerce product listings
+- Help and documentation
+
+You should ask yourself: "Can I pre-render this page **ahead** of a user's request?" If the answer is yes, then you should choose Static Generation.
+
+On the other hand, Static Generation is **not** a good idea if you cannot pre-render a page ahead of a user's request. Maybe your page shows frequently updated data, and the page content changes on every request.
+
+In that case, you can use **Server-Side Rendering**. It will be slower, but the pre-rendered page will always be up-to-date. Or you can skip pre-rendering and use client-side JavaScript to populate data.
+```
+
+우선 \---로 감싸진 metadata(YAML Front Matter)를 읽어보자
+
+이를 위해 front matter를 해석해 줄 라이브러리를 설치해야 한다.
+
+```bash
+npm install gray-matter
+```
+
+설치를 마친 뒤 gray-matter를 활용하는 코드를 만든다.(프로젝트 최상단 [lib] 디렉터리를 생성 뒤, posts.js 파일)
+
+```JavaScript
+// posts.js
+import fs from 'fs';
+import path from 'path';
+import matter from 'gray-matter';
+
+const postsDirectory = path.join(process.cwd(), 'posts');
+
+export function getSortedPostsData() {
+  // Get file names under /posts
+  const fileNames = fs.readdirSync(postsDirectory);
+  const allPostsData = fileNames.map((fileName) => {
+    // Remove ".md" from file name to get id
+    const id = fileName.replace(/\.md$/, '');
+
+    // Read markdown file as string
+    const fullPath = path.join(postsDirectory, fileName);
+    const fileContents = fs.readFileSync(fullPath, 'utf8');
+
+    // Use gray-matter to parse the post metadata section
+    const matterResult = matter(fileContents);
+
+    // Combine the data with the id
+    return {
+      id,
+      ...matterResult.data,
+    };
+  });
+  // Sort posts by date
+  return allPostsData.sort(({ date: a }, { date: b }) => {
+    if (a < b) {
+      return 1;
+    } else if (a > b) {
+      return -1;
+    } else {
+      return 0;
+    }
+  });
+}
+```
+
+코드를 차근차근 살펴 보자. getSortedPostsData() 함수가 posts 데이터를 읽는다. 읽는 디렉터리는 postsDirectory 상수로 지정한 곳인데, 즉 path.join() 함수를 살펴 보면 어디를 가리키는지 알 수 있다. 우선 첫 번째 인자인 process.cwd()는 현재 서비스의 root를 의미한다.(예제는 [blog]가 된다.). 그리고 두 번째 인자로 posts가 붙었으므로 md 파일이 든 [blog] - [posts] 디렉터리를 의미한다.
+
+```JavaScript
+const postsDirectory = path.join(process.cwd(), 'posts');
+
+export function getSortedPostsData() {
+  // /posts 디렉터리에 있는 파일 네임들을 읽어온다.
+  const fileNames = fs.readdirSync(postsDirectory);
+  //...
+```
+
+![blog - posts 디렉터리](images/blog-posts.png)
+
+이렇게 파일 이름을 읽었다면, 이제 fs.readdirSync의 map 함수를 통해(fs: file system. 파일을 읽어오는 Node.js의 라이브러리), 읽어온 파일 제목에서 .md 부분을 제거한 부분만 id에 저장한다.
+
+```JavaScript
+  const allPostsData = fileNames.map((fileName) => {
+    // Remove ".md" from file name to get id
+    const id = fileName.replace(/\.md$/, '');
+```
+
+이제 md 파일의 경로에 해당하는 fullPath 상수를 만들고, fs.readFileSync로 md 파일을 문자열로 읽는다.
+
+```JavaScript
+    // Read markdown file as string
+    const fullPath = path.join(postsDirectory, fileName);
+    const fileContents = fs.readFileSync(fullPath, 'utf8');
+```
+
+이제 ---로 감싸진 부분만 읽기 위해 gray-matter를 이용한다. 결과는 metadata만 읽어낸다.
+
+```JavaScript
+    // Use gray-matter to parse the post metadata section
+    const matterResult = matter(fileContents);
+```
+
+이후 값들을 반환한다. id는 .md를 제외한 파일명이 있었고, matterResult에는 ---로 감싸진 metadata가 저장되어 있었다.
+
+allPostsData.sort에서는 id 파일 내 있는 date 값을 꺼내서, 조건에 따라 값을 반환한다.
+
+> [mdn: sort() 메서드](https://developer.mozilla.org/ko/docs/Web/JavaScript/Reference/Global_Objects/Array/sort): 정렬 순서에 따라 어떤 값을 반환하는지 안내
+
+```JavaScript
+    // Combine the data with the id
+    return {
+      id,
+      ...matterResult.data,
+    };
+  });
+  // Sort posts by date
+  return allPostsData.sort(({ date: a }, { date: b }) => {
+    if (a < b) {
+      return 1;
+    } else if (a > b) {
+      return -1;
+    } else {
+      return 0;
+    }
+  });
+}
+```
+
+### SSG로 구현
+
+> [Next.js: getStaticProps](https://nextjs.org/learn/basics/data-fetching/implement-getstaticprops)
+
+우선 SSG로 구현할 것이다. 이를 위해 getStaticProps()(+ getStaticPaths())를 사용해야 한다. [pages] - index.js 파일에 예제에서 제시한 방식대로 구현해 보자.(링크 내 section 파트를 넣어 주었다.)
+
+```JavaScript
+// index.js
+import Head from 'next/head'
+import Layout, { siteTitle } from '../components/Layout'
+import { getSortedPostsData } from '../lib/posts'    // getSortedPostsData() 함수를 가져온다.
+import utilStyles from '../styles/utils.module.css'
+
+// 위에서 구현한 getSortedPostsData() 함수로 데이터를 받아온다. 이를 밑에 전달할 것이다.
+export async function getStaticProps() {
+  const allPostsData = getSortedPostsData()
+
+  return {
+    props: {
+      allPostsData,
+    },
+  }
+}
+
+export default function Home({ allPostsData }) {
+  return (
+    <Layout home>
+      <Head>
+        <title>{siteTitle}</title>
+      </Head>
+      <section className={utilStyles.headingMd}>
+        <p>[Your Self Introduction]</p>
+        <p>
+          (This is a sample website - you’ll be building a site like this on{' '}
+          <a href="https://nextjs.org/learn">our Next.js tutorial</a>.)
+        </p>
+      </section>
+
+      // 공식 문서에서 제공하는 section 부분
+      <section className={`${utilStyles.headingMd} ${utilStyles.padding1px}`}>
+        <h2 className={utilStyles.headingLg}>Blog</h2>
+        <ul className={utilStyles.list}>
+          {allPostsData.map(({ id, date, title }) => (
+            <li className={utilStyles.listItem} key={id}>
+              {title}
+              <br />
+              {id}
+              <br />
+              {date}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </Layout>
+  )
+}
+```
+
+map() 메서드로 {id, date, title}을 받아서, id를 key로 쓰고, title와 id, date를 순서대로 노출시킨다.
+
+아래는 yarn build - start로 실행한 홈페이지 결과 사진이다.
+
+![metadata 읽기: SSG 구현](images/metadata_ssg_1.png)
+
+### SSR로 구현
+
+이번에는 SSR로 구현하자. 따라서 getServerSideProps()를 사용한다.
+
+```JavaScript
+// index.js
+
+export async function getServerSideProps() {
+  const allPostsData = getSortedPostsData()
+  //...
+}
+```
+
+이번 예제는 단순히 함수 이름만 getServerSideProps()로 바꿔 주면 끝이다.
+
+![metadata 읽기: SSR 구현](images/metadata_ssr_1.png)
+
+### CSR로 구현
+
+이번에는 CSR로 구현할 것이다. 함수를 지워 주기만 하면 작동할까? 정답은 '그렇지 않다'이다.
+
+지금 예제는 홈페이지는 서버(노드)에서 파일을 읽어와서, SSG와 SSR로 구현할 때는 함수가 이것을 받아서 전달했다. 따라서 서버를 쓰는 또 다른 방식: API Routes를 적용해야 한다.
+
+res이 오면 res.json으로 바꿔 주며, data가 오면 setAllPostsData(data)를 반환한다.
+
+이제 api를 만든다. [pages] 디렉터리 내 [api] 폴더를 만든 뒤, 내부에 posts.js를 만들었다.
+
+```JavaScript
+// api/posts.js
+import { getSortedPostsData } from '../../lib/posts'
+
+export default function handler(req, res) {
+  const allPostsData = getSortedPostsData()
+  res.status(200).json({ allPostsData })
+}
+```
+
+다음은 수정한 index.js 파일 코드이다.
+
+```JavaScript
+// index.js
+import Head from 'next/head'
+import { useEffect, useState } from 'react'
+import Layout, { siteTitle } from '../components/Layout'
+// import { getSortedPostsData } from '../lib/posts'
+import utilStyles from '../styles/utils.module.css'
+
+export default function Home() {
+  const [allPostsData, setAllPostsData] = useState([])
+  useEffect(() => {
+    fetch('api/posts')
+      .then((res) => res.json())
+      .then((data) => setAllPostsData(data.allPostsData))
+  }, [])
+  return (
+    //...
+  )
+}
+```
+
+아래는 CSR로 구현한 홈페이지 사진이다. 클라이언트 사이드에서 요청했기 때문에, 클라이언트 네트워크 탭에 파일 시스템에서 읽은 값들이 표시된다.
+
+![metadata 읽기: CSR 구현](images/metadata_csr_1.png)
+
+![metadata 읽기: CSR 구현 2](images/metadata_csr_2.png)
+
+### SSG + API 구현
+
+그렇다면 SSG의 getStaticProps()에서 API를 직접 호출하면 어떻게 될까?
+
+> [Next.js: Using getStaticProps to fetch data from a CMS](https://nextjs.org/docs/basic-features/data-fetching/get-static-props#write-server-side-code-directly)(CMS란 콘텐츠 관리 시스템을 뜻한다. 워드프레스가 예시)
+
+```JavaScript
+// index.js
+import Head from 'next/head'
+import Layout, { siteTitle } from '../components/Layout'
+import utilStyles from '../styles/utils.module.css'
+
+
+export async function getStaticProps() {
+  // getStaticProps에서는 fetch를 절대 경로만 사용할 수 있다.
+  // Call an external API endpoint to get posts
+  const response = await fetch('http://localhost:3000/api/posts')
+  const json = await response.json()
+
+  // By returning { props: { allPostsData: { json.allPostsData, }, }
+  // will receive `allPostsData` as a prop at build time
+  return {
+    props: {
+      allPostsData: json.allPostsData,
+    },
+  }
+}
+
+export default function Home({ allPostsData }) {
+  return (
+    //...
+  )
+}
+```
+
+아래는 yarn dev로 구동한 화면이다.
+
+![metadata 읽기: SSG + API 구현](images/metadata_ssg_api_1.png)
+
+### Data를 가져오는 함수 getSortedPostsData의 확장
+
+- 다른 File 조회
+
+- 외부 api 요청
+
+- DB 조회
 
 ---
